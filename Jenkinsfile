@@ -6,6 +6,20 @@ pipeline {
     }
     
     stages {
+        stage('Prepare HCP Vault Secrets') {
+            steps {
+                withCredentials([
+                    string(credentialsId: 'HCP_CLIENT_ID', variable: 'HCP_CLIENT_ID'),
+                    string(credentialsId: 'HCP_CLIENT_SECRET', variable: 'HCP_CLIENT_SECRET')
+                ]) {
+                    sh '''
+                    echo "HCP_CLIENT_ID=${HCP_CLIENT_ID}" > vault-secrets.env
+                    echo "HCP_CLIENT_SECRET=${HCP_CLIENT_SECRET}" >> vault-secrets.env
+                    '''
+                }
+            }
+        }
+        
         stage('Prepare Ansible Playbook') {
             steps {
                 script {
@@ -45,12 +59,26 @@ pipeline {
                 }
             }
         }
+
+        stage('HCP Vault Secrets List') {
+          steps {
+            withCredentials([
+                    string(credentialsId: 'HCP_CLIENT_ID', variable: 'HCP_CLIENT_ID'),
+                    string(credentialsId: 'HCP_CLIENT_SECRET', variable: 'HCP_CLIENT_SECRET')
+                ]) {
+                sh '''
+                docker run --rm --env-file vault-secrets.env --volume $(pwd):/apps hashicorp/hcp hcp vs secrets list --app=fs-secrets > secret-list.txt
+                cat secret-list.txt
+                '''
+              }
+          }
+        }
     }
     
     post {
         always {
             echo 'Cleaning up...'
-            sh 'rm -f hello-world.yml output.txt || true'
+            sh 'rm -f hello-world.yml output.txt vault-secrets.env secret-list.txt || true'
         }
         
         success {
