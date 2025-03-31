@@ -3,6 +3,7 @@ pipeline {
     
     environment {
         REPO_FOLDER = 'home-ansible-servers'
+        ANSIBLE_IMAGE = 'alpine/ansible:latest'
     }
     
     stages {
@@ -33,11 +34,23 @@ pipeline {
             }
         }
         
-        stage('Install Ansible Requirements') {
+        stage('Install Ansible Requirements in Container') {
             steps {
                 script {
-                    // Install Ansible requirements
-                    sh 'ansible-galaxy install -r $REPO_FOLDER/requirements.yml'
+                    // Pull the latest Ansible image
+                    sh "docker pull ${ANSIBLE_IMAGE}"
+                    
+                    // Install Ansible requirements inside the container
+                    sh "docker run --rm -v \${PWD}/$REPO_FOLDER:/ansible ${ANSIBLE_IMAGE} ansible-galaxy install -r /ansible/requirements.yml"
+                }
+            }
+        }
+        
+        stage('Run Ansible Playbook in Container') {
+            steps {
+                script {
+                    // Run Ansible playbook inside the container
+                    sh "docker run --rm -v \${PWD}/$REPO_FOLDER:/ansible ${ANSIBLE_IMAGE} ansible-playbook /ansible/playbook.yml"
                 }
             }
         }
