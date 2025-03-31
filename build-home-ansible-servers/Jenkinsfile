@@ -1,12 +1,25 @@
 pipeline {
     agent any
     
+    environment {
+        REPO_FOLDER = 'home-ansible-servers'
+    }
+    
     stages {
+        stage('Cleanup Workspace') {
+            steps {
+                script {
+                    // Remove existing folder if it exists
+                    sh 'rm -rf $REPO_FOLDER'
+                }
+            }
+        }
+
         stage('Checkout Repository') {
             steps {
                 script {
                     // Clone the public repository
-                    sh 'git clone https://github.com/fabricesemti80/home-ansible-servers.git'
+                    sh 'git clone https://github.com/fabricesemti80/home-ansible-servers.git $REPO_FOLDER'
                 }
             }
         }
@@ -15,7 +28,7 @@ pipeline {
             steps {
                 script {
                     // List contents of the checked-out repository
-                    sh 'ls -la home-ansible-servers'
+                    sh 'ls -la $REPO_FOLDER'
                 }
             }
         }
@@ -24,7 +37,7 @@ pipeline {
             steps {
                 script {
                     // Install Ansible requirements
-                    sh 'ansible-galaxy install -r home-ansible-servers/requirements.yml'
+                    sh 'ansible-galaxy install -r $REPO_FOLDER/requirements.yml'
                 }
             }
         }
