@@ -1,11 +1,12 @@
 pipeline {
     agent any
-    
+
     environment {
         REPO_FOLDER = 'home-ansible-servers'
         ANSIBLE_IMAGE = 'alpine/ansible:latest'
+        CONTAINER_NAME = 'ansible_runner' // Name for the docker container
     }
-    
+
     stages {
         stage('Cleanup Workspace') {
             steps {
@@ -24,7 +25,7 @@ pipeline {
                 }
             }
         }
-        
+
         stage('List Files') {
             steps {
                 script {
@@ -33,24 +34,25 @@ pipeline {
                 }
             }
         }
-        
-        stage('Install Ansible Requirements in Container') {
+
+        stage('Run Ansible in One Container') {
             steps {
                 script {
                     // Pull the latest Ansible image
                     sh "docker pull ${ANSIBLE_IMAGE}"
-                    
-                    // Install Ansible requirements inside the container
-                    sh "docker run --rm -v \${PWD}/$REPO_FOLDER:/ansible ${ANSIBLE_IMAGE} ansible-galaxy install -r /ansible/requirements.yml"
-                }
-            }
-        }
-        
-        stage('Run Ansible Playbook in Container') {
-            steps {
-                script {
-                    // Run Ansible playbook inside the container
-                    sh "docker run --rm -v \${PWD}/$REPO_FOLDER:/ansible ${ANSIBLE_IMAGE} ansible-playbook /ansible/playbook.yml"
+
+                    // Start the container and keep it running in the background
+                    sh "docker run -d --name ${CONTAINER_NAME} -v \${PWD}/$REPO_FOLDER:/ansible -w /ansible ${ANSIBLE_IMAGE} tail -f /dev/null"
+
+                    // Install Ansible requirements inside the running container
+                    sh "docker exec ${CONTAINER_NAME} ansible-galaxy install -r requirements.yml"
+
+                    // Run Ansible playbook inside the same running container
+                    sh "docker exec ${CONTAINER_NAME} ansible-playbook nas.yml -b -K --check --diff"
+
+                    // Stop and remove the container
+                    sh "docker stop ${CONTAINER_NAME}"
+                    sh "docker rm ${CONTAINER_NAME}"
                 }
             }
         }
