@@ -1,0 +1,23 @@
+pipeline {
+    agent any
+    
+    stages {
+        stage('Checkout Repository') {
+            steps {
+                script {
+                    // Clone the public repository
+                    sh 'git clone https://github.com/fabricesemti80/home-ansible-servers.git'
+                }
+            }
+        }
+        
+        stage('List Files') {
+            steps {
+                script {
+                    // List contents of the checked-out repository
+                    sh 'ls -la home-ansible-servers'
+                }
+            }
+        }
+    }
+}
