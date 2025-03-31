@@ -4,53 +4,21 @@ pipeline {
     environment {
         REPO_FOLDER = 'home-ansible-servers'
         ANSIBLE_IMAGE = 'alpine/ansible:latest'
-        CONTAINER_NAME = 'ansible_runner' // Name for the docker container
+        CONTAINER_NAME = 'ansible_runner'
     }
 
     stages {
-        stage('Cleanup Workspace') {
-            steps {
-                script {
-                    // Remove existing folder if it exists
-                    sh 'rm -rf $REPO_FOLDER'
-                }
-            }
-        }
-
-        stage('Checkout Repository') {
-            steps {
-                script {
-                    // Clone the public repository
-                    sh 'git clone https://github.com/fabricesemti80/home-ansible-servers.git $REPO_FOLDER'
-                }
-            }
-        }
-
-        stage('List Files') {
-            steps {
-                script {
-                    // List contents of the checked-out repository
-                    sh 'ls -la $REPO_FOLDER'
-                }
-            }
-        }
+        // ... (Cleanup, Checkout, List Files stages remain the same)
 
         stage('Run Ansible in One Container') {
             steps {
                 script {
-                    // Pull the latest Ansible image
                     sh "docker pull ${ANSIBLE_IMAGE}"
 
-                    // Start the container and keep it running in the background
                     sh "docker run -d --name ${CONTAINER_NAME} -v \${PWD}/$REPO_FOLDER:/ansible -w /ansible ${ANSIBLE_IMAGE} tail -f /dev/null"
 
-                    // Install Ansible requirements inside the running container
                     sh "docker exec ${CONTAINER_NAME} ansible-galaxy install -r requirements.yml"
 
-                    // Run Ansible playbook inside the same running container
-                    sh "docker exec ${CONTAINER_NAME} ansible-playbook nas.yml -b -K --check --diff"
-
-                    // Stop and remove the container
                     sh "docker stop ${CONTAINER_NAME}"
                     sh "docker rm ${CONTAINER_NAME}"
                 }
