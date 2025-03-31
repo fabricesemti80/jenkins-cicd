@@ -19,5 +19,14 @@ pipeline {
                 }
             }
         }
+        
+        stage('Install Ansible Requirements') {
+            steps {
+                script {
+                    // Install Ansible requirements
+                    sh 'ansible-galaxy install -r home-ansible-servers/requirements.yml'
+                }
+            }
+        }
     }
 }
